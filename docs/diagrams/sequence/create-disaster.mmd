@@ -1,0 +1,32 @@
+sequenceDiagram
+    actor U as User (Admin/Contributor)
+    participant API as HTTP Controller
+    participant UC as CreateDisasterUseCase (core)
+    participant GEO as GeocodingPort -> MockGeocodingAdapter
+    participant CACHE as CachePort -> InMemoryCacheAdapter
+    participant REPO as DisasterRepositoryPort -> InMemoryRepo
+    participant EVT as EventPublisherPort -> SocketAdapter
+
+    U->>API: POST /disasters { title, description, tags }
+    API->>API: authenticate() -> AuthenticatedUser
+    API->>UC: execute(dto, user)
+    UC->>UC: validate input (title, description required)
+    alt validation fails
+        UC-->>API: throws ValidationError
+        API-->>U: 400 Bad Request
+    else validation passes
+        UC->>CACHE: get(geocodeCacheKey(description))
+        alt cache hit
+            CACHE-->>UC: cached location
+        else cache miss
+            UC->>GEO: resolve(description)
+            GEO-->>UC: { name, lat, lng }
+            UC->>CACHE: set(geocodeCacheKey, location, ttl)
+        end
+        UC->>REPO: save(disaster)
+        REPO-->>UC: saved Disaster
+        UC->>EVT: publish("disaster_updated", disaster)
+        EVT-->>U: real-time push to connected clients
+        UC-->>API: Disaster
+        API-->>U: 201 Created { disaster }
+    end

@@ -1,0 +1,23 @@
+sequenceDiagram
+    actor U as Client
+    participant MW as AuthMiddleware (HTTP layer)
+    participant CTRL as Controller
+    participant UC as Use-Case (core)
+
+    U->>MW: Request + identity header (e.g. x-user-id / mock token)
+    MW->>MW: resolve header → lookup user record
+    alt identity not recognized
+        MW-->>U: 401 Unauthorized
+    else identity recognized
+        MW->>MW: build AuthenticatedUser { id, role }
+        MW->>CTRL: forward request + AuthenticatedUser
+        CTRL->>UC: execute(dto, AuthenticatedUser)
+        Note over UC: Authorization (role check)<br/>happens HERE, inside the use-case,<br/>NOT in middleware
+        alt role not permitted for this operation
+            UC-->>CTRL: throws UnauthorizedError
+            CTRL-->>U: 403 Forbidden
+        else role permitted
+            UC-->>CTRL: result
+            CTRL-->>U: 200 / 201 success
+        end
+    end

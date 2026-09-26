@@ -1,0 +1,28 @@
+sequenceDiagram
+    actor U as User (Admin/Contributor)
+    participant API as HTTP Controller
+    participant UC as DeleteDisasterUseCase (core)
+    participant REPO as DisasterRepositoryPort -> InMemoryRepo
+    participant EVT as EventPublisherPort -> SocketAdapter
+
+    U->>API: DELETE /disasters/:id
+    API->>API: authenticate() -> AuthenticatedUser
+    API->>UC: execute(id, user)
+    alt user.role != "admin"
+        UC-->>API: throws UnauthorizedError
+        API-->>U: 403 Forbidden
+    else user.role == "admin"
+        UC->>REPO: findById(id)
+        alt disaster not found
+            REPO-->>UC: null
+            UC-->>API: throws NotFoundError
+            API-->>U: 404 Not Found
+        else disaster found
+            UC->>REPO: delete(id)
+            REPO-->>UC: confirmed
+            UC->>EVT: publish("disaster_updated", { id, deleted: true })
+            EVT-->>U: real-time push to connected clients
+            UC-->>API: success
+            API-->>U: 204 No Content
+        end
+    end

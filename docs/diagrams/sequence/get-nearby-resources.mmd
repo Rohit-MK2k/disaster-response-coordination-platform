@@ -1,0 +1,29 @@
+sequenceDiagram
+    actor U as User (Admin/Contributor)
+    participant API as HTTP Controller
+    participant UC as GetNearbyResourcesUseCase (core)
+    participant DREPO as DisasterRepositoryPort -> InMemoryRepo
+    participant RREPO as ResourceRepositoryPort -> InMemoryRepo
+    participant DIST as DistanceCalculator (pure function)
+
+    U->>API: GET /disasters/:id/resources?lat&lng&radius
+    API->>API: authenticate() -> AuthenticatedUser
+    API->>UC: execute(disasterId, lat, lng, radiusKm)
+    UC->>DREPO: findById(disasterId)
+    alt disaster not found
+        DREPO-->>UC: null
+        UC-->>API: throws NotFoundError
+        API-->>U: 404 Not Found
+    else disaster found
+        DREPO-->>UC: Disaster
+        UC->>RREPO: findAll()
+        RREPO-->>UC: Resource[]
+        loop for each resource
+            UC->>DIST: haversineDistance(queryPoint, resource.location)
+            DIST-->>UC: distanceKm
+        end
+        UC->>UC: filter resources where distanceKm <= radiusKm
+        UC->>UC: sort by distanceKm ascending
+        UC-->>API: Resource[] (within radius, sorted)
+        API-->>U: 200 OK { resources }
+    end

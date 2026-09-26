@@ -1,0 +1,40 @@
+sequenceDiagram
+    actor U as User (Admin/Contributor)
+    participant API as HTTP Controller
+    participant UC as GetDisasterReportsUseCase (core)
+    participant DREPO as DisasterRepositoryPort -> InMemoryRepo
+    participant CACHE as CachePort -> InMemoryCacheAdapter
+    participant SRC as ReportsSourcePort -> MockReportsAdapter
+    participant MATCH as ReportMatcher (pure function)
+
+    U->>API: GET /disasters/:id/reports
+    API->>API: authenticate() -> AuthenticatedUser
+    API->>UC: execute(disasterId)
+    UC->>DREPO: findById(disasterId)
+    alt disaster not found
+        DREPO-->>UC: null
+        UC-->>API: throws NotFoundError
+        API-->>U: 404 Not Found
+    else disaster found
+        DREPO-->>UC: Disaster
+        UC->>CACHE: get(reportsCacheKey)
+        alt cache hit
+            CACHE-->>UC: cached normalized Report[]
+        else cache miss
+            UC->>SRC: fetchRawReports()
+            alt external service fails/times out
+                SRC-->>UC: throws ExternalServiceError
+                UC->>UC: degrade gracefully
+                UC-->>API: empty Report[] (or last-known-good if cached previously)
+                API-->>U: 200 OK { reports: [] } (with warning flag)
+            else external service responds
+                SRC-->>UC: raw external payload
+                UC->>UC: normalize(rawPayload) -> Report[]
+                UC->>CACHE: set(reportsCacheKey, normalizedReports, ttl)
+            end
+        end
+        UC->>MATCH: filter reports where locationMatch AND tagMatch(disaster)
+        MATCH-->>UC: matched Report[]
+        UC-->>API: matched Report[]
+        API-->>U: 200 OK { reports }
+    end
