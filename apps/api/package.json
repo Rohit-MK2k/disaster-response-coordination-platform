@@ -4,6 +4,17 @@
   "type": "module",
   "dependencies": {
     "@drp/core": "*",
-    "@drp/shared-types": "*"
+    "@drp/shared-types": "*",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.4"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "tsx": "^4.23.15"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts"
   }
 }
