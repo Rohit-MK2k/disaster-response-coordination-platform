@@ -1,0 +1,9 @@
+{
+  "name": "@drp/api",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@drp/core": "*",
+    "@drp/shared-types": "*"
+  }
+}
