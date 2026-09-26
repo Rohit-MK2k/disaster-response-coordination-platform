@@ -1,0 +1,8 @@
+{
+  "name": "@drp/web",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@drp/shared-types": "*"
+  }
+}
