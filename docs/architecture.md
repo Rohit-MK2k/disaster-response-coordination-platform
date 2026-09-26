@@ -194,3 +194,23 @@ erDiagram
 Note: `RESOURCE` and `REPORT` are **not** foreign-keyed to `DISASTER` in storage — both relationships are computed at query time (spatial radius for resources, location+tag matching for reports), which is a deliberate design decision explained in the README.
 
 `USER` shows the **full stored record**. `core`'s domain interface for `User` intentionally exposes only `{ id, name, role }` — `email` and `password` never cross into business logic (see Interface Segregation, Section 3).
+
+---
+
+## 7. Strict Layer Constraints (The "Don'ts")
+
+To maintain the integrity of the Ports & Adapters architecture, the following hard constraints apply to each layer:
+
+### 1. Core Layer (`packages/core`)
+- **DON'T import infrastructure:** No HTTP frameworks (Express), no database drivers, no SDKs (e.g., `@google/genai`), and no Socket.io.
+- **DON'T leak database secrets:** Raw database models must not cross into Core. If a DB record holds a `password_hash`, the Core `User` entity must remain ignorant of it.
+- **DON'T rely on the outside world:** Core defines what it needs via Interfaces (Ports) and forces the outside world to implement them.
+- **DON'T put authorization in middleware:** Business rules (e.g., "only admins can delete") must be enforced directly inside Core Use Cases, never delegated to an external HTTP router.
+
+### 2. Infrastructure / API Layer (`apps/api`)
+- **DON'T write business logic here:** Controllers should be strictly for routing — they parse the HTTP request, pass it to a Core Use Case, and format the response.
+- **DON'T bypass the Core:** Never inject a Repository directly into a Controller to fetch data without going through a proper Use Case.
+- **DON'T handle Authorization:** You may Authenticate the user (parse tokens), but do not block the request based on their role here. Pass the `User` to the Core and let the Core reject it.
+
+### 3. Presentation / Web Layer (`apps/web`)
+- **DON'T import the Core:** The frontend must never depend on `packages/core`. It relies strictly on `packages/shared-types` for data shapes and communicates with the backend over the network.
