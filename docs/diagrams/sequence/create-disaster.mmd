@@ -2,31 +2,41 @@ sequenceDiagram
     actor U as User (Admin/Contributor)
     participant API as HTTP Controller
     participant UC as CreateDisasterUseCase (core)
+    participant EXT as TextExtractionPort -> LlmExtractionAdapter
     participant GEO as GeocodingPort -> MockGeocodingAdapter
     participant CACHE as CachePort -> InMemoryCacheAdapter
     participant REPO as DisasterRepositoryPort -> InMemoryRepo
     participant EVT as EventPublisherPort -> SocketAdapter
 
-    U->>API: POST /disasters { title, description, tags }
+    U->>API: POST /disasters { text }
     API->>API: authenticate() -> AuthenticatedUser
-    API->>UC: execute(dto, user)
-    UC->>UC: validate input (title, description required)
+    API->>UC: execute(text, user)
+    UC->>UC: validate input (text non-empty)
     alt validation fails
         UC-->>API: throws ValidationError
         API-->>U: 400 Bad Request
     else validation passes
-        UC->>CACHE: get(geocodeCacheKey(description))
-        alt cache hit
-            CACHE-->>UC: cached location
-        else cache miss
-            UC->>GEO: resolve(description)
-            GEO-->>UC: { name, lat, lng }
-            UC->>CACHE: set(geocodeCacheKey, location, ttl)
+        UC->>EXT: extract(text)
+        alt extraction fails/times out
+            EXT-->>UC: throws ExtractionError
+            UC-->>API: throws ExtractionError
+            API-->>U: 422 Unprocessable Entity
+        else extraction succeeds
+            EXT-->>UC: { title, tags, locationText }
+            UC->>CACHE: get(geocodeCacheKey(locationText))
+            alt cache hit
+                CACHE-->>UC: cached location
+            else cache miss
+                UC->>GEO: resolve(locationText)
+                GEO-->>UC: { name, lat, lng }
+                UC->>CACHE: set(geocodeCacheKey, location, ttl)
+            end
+            UC->>UC: build Disaster { title, description: text, tags, location }
+            UC->>REPO: save(disaster)
+            REPO-->>UC: saved Disaster
+            UC->>EVT: publish("disaster_updated", disaster)
+            EVT-->>U: real-time push to connected clients
+            UC-->>API: Disaster
+            API-->>U: 201 Created { disaster }
         end
-        UC->>REPO: save(disaster)
-        REPO-->>UC: saved Disaster
-        UC->>EVT: publish("disaster_updated", disaster)
-        EVT-->>U: real-time push to connected clients
-        UC-->>API: Disaster
-        API-->>U: 201 Created { disaster }
     end

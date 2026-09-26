@@ -48,7 +48,7 @@ shared-types  ←  web
 ## 3. LLD Principles & How They're Applied
 
 ### Ports & Adapters (Hexagonal), lightweight
-`core` defines **ports** (interfaces) for everything it needs from the outside world — persistence, geocoding, external report fetching, caching, event publishing. `apps/api` provides **adapters** that implement those ports. `core` is constructed by receiving adapters through its constructors (Dependency Injection) — it never instantiates or imports an adapter itself.
+`core` defines **ports** (interfaces) for everything it needs from the outside world — persistence, text extraction, geocoding, external report fetching, caching, event publishing. `apps/api` provides **adapters** that implement those ports. `core` is constructed by receiving adapters through its constructors (Dependency Injection) — it never instantiates or imports an adapter itself.
 
 ### SOLID, applied concretely
 - **S — Single Responsibility**: each use-case (`CreateDisasterUseCase`, `GetNearbyResourcesUseCase`) does exactly one operation. Matching logic, distance calculation, and normalization each live in their own single-purpose service, not folded into a use-case.
@@ -60,6 +60,16 @@ shared-types  ←  web
 ### Authentication vs. Authorization, split by layer
 - **Authentication** (who is this?) is an HTTP-layer concern — middleware resolves a request into an `AuthenticatedUser { id, role }`.
 - **Authorization** (are they allowed?) is a **core business rule**, enforced inside the relevant use-case (e.g. `DeleteDisasterUseCase` rejects non-admins) — not in middleware. This makes the rule testable without any HTTP involved, and impossible to bypass by hitting the use-case directly.
+
+### Disaster creation: natural-language input via TextExtractionPort
+`POST /disasters` accepts a single free-form `text` field (typed, or transcribed client-side via browser Speech-to-Text — `core` and `apps/api` never see audio, only text). `CreateDisasterUseCase` derives structure from it in two steps, using two narrow, single-purpose ports rather than one combined port:
+
+1. **`TextExtractionPort.extract(text)`** → `{ title, tags, locationText }`. Implemented by `LlmExtractionAdapter` in `apps/api` — an LLM call, since inferring a title and categorical tags from free text is a language-understanding problem, not a lookup. `core` depends only on the interface; it has no knowledge that an LLM is involved.
+2. **`GeocodingPort.resolve(locationText)`** → `{ name, lat, lng }`. Deliberately **not** LLM-based — resolving a known place name to coordinates is a deterministic lookup problem (gazetteer/geocoding service), not a language task, so using an LLM here would add cost, latency, and hallucination risk for no benefit.
+
+The two ports are kept separate (Interface Segregation) even though both could theoretically be handled by one LLM call: extraction and geocoding are different responsibilities with different failure modes and different appropriate implementations. `description` is populated directly from the raw `text` — no extraction needed for that field.
+
+`PATCH /disasters/:id` is unaffected by this — updates still accept structured fields (`title`, `description`, `tags`, `status`) directly; natural-language parsing only happens at creation.
 
 ### Update semantics: conditional re-geocoding
 `PATCH /disasters/:id` allows editing `title`, `description`, `tags`, and `status`. Location is **not** blindly re-resolved on every update — that would waste external geocoding calls for edits that don't touch location at all (e.g. a status change).
@@ -123,12 +133,12 @@ Each major flow has its own diagram, kept as a separate `.mmd` file rather than 
 
 | Flow | File |
 |---|---|
-| Authenticate request (identity resolution vs. authorization split) | [`authenticate-request.mmd`](/docs/diagrams/sequence/authenticate-request.mmd) |
-| Create disaster (geocode → cache → persist → emit) | [`create-disaster.mmd`](/docs/diagrams/sequence/create-disaster.mmd) |
-| Update disaster (conditional re-geocode on description change) | [`update-disaster.mmd`](/docs/diagrams/sequence/update-disaster.mmd) |
-| Delete disaster (admin-only authorization demonstration) | [`delete-disaster.mmd`](/docs/diagrams/sequence/delete-disaster.mmd) |
-| Get nearby resources (radius query + distance calc) | [`get-nearby-resources.mmd`](/docs/diagrams/sequence/get-nearby-resources.mmd) |
-| Get disaster reports (cache → external fetch → normalize → match) | [`get-disaster-reports.mmd`](/docs/diagrams/sequence/get-disaster-reports.mmd) |
+| Authenticate request (identity resolution vs. authorization split) | [`diagrams/sequence/authenticate-request.mmd`](./diagrams/sequence/authenticate-request.mmd) |
+| Create disaster (geocode → cache → persist → emit) | [`diagrams/sequence/create-disaster.mmd`](./diagrams/sequence/create-disaster.mmd) |
+| Update disaster (conditional re-geocode on description change) | [`diagrams/sequence/update-disaster.mmd`](./diagrams/sequence/update-disaster.mmd) |
+| Delete disaster (admin-only authorization demonstration) | [`diagrams/sequence/delete-disaster.mmd`](./diagrams/sequence/delete-disaster.mmd) |
+| Get nearby resources (radius query + distance calc) | [`diagrams/sequence/get-nearby-resources.mmd`](./diagrams/sequence/get-nearby-resources.mmd) |
+| Get disaster reports (cache → external fetch → normalize → match) | [`diagrams/sequence/get-disaster-reports.mmd`](./diagrams/sequence/get-disaster-reports.mmd) |
 
 Plain reads (`GET /disasters`, `GET /disasters/:id`) are omitted — no branching or multiple participants worth diagramming.
 

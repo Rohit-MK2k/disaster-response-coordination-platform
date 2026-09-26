@@ -28,24 +28,39 @@ in what each is *allowed to do*, not what they can *see*.
 ## 3. Core Features
 
 ### 3.1 Disaster Logging
-Users can record a disaster incident with:
-- A **title** (short label, e.g. "Manhattan Flooding")
-- A **description** (free text — what happened, where, how bad)
-- A **status** (e.g. active, resolved)
+Reporting a disaster is deliberately as simple as possible: the user
+describes **what's happening, in their own words** — either by typing
+it or speaking it (converted to text automatically). For example:
+
+> *"Heavy flooding has affected Manhattan, NYC, people are trapped on
+> rooftops."*
+
+From that single description, the system automatically works out:
+- A **title** (a short label for the incident)
 - **Tags** (e.g. flood, fire, earthquake — used for filtering later)
-- Who reported it, and when it was created or last changed
+- **Where it's happening** (see 3.2)
+
+The user isn't asked to fill out separate fields for these — writing
+or speaking one clear account of the situation is enough. The system
+also tracks a **status** (e.g. active, resolved), who reported it, and
+when it was created or last changed.
 
 Once logged, a disaster can be **viewed**, **edited**, or (for admins)
-**removed**. Users can also browse the full list of disasters and
-**filter it** — for example, "show me only flood-related incidents."
+**removed**. Editing works differently from initial reporting: a user
+can directly adjust the title, tags, or status, and can revise the
+description if it was wrong or incomplete. Users can also browse the
+full list of disasters and **filter it** — for example, "show me only
+flood-related incidents."
 
 ### 3.2 Automatic Location Resolution
-People describe disasters in plain language, not coordinates — e.g.
-*"Heavy flooding has affected Manhattan, NYC."* The system reads that
-description and figures out **where it's actually happening**, turning
-a place name buried in a sentence into a precise location the system
-can work with (for maps, distance search, etc.). The user never has to
-manually enter a latitude/longitude.
+Because the user just describes the situation in plain language, the
+system has to figure out **where it's actually happening** on its own.
+This happens in two steps, invisible to the user: first, the system
+identifies which part of the description refers to a place (e.g.
+*"Manhattan, NYC"* from the sentence above); then it resolves that
+place into a precise location the system can work with (for maps,
+distance search, etc.). The user never has to manually enter a
+latitude/longitude, or even name a location in a separate field.
 
 ### 3.3 Nearby Resource Discovery
 Separately from disasters, the system keeps track of **resources** —
