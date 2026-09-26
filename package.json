@@ -7,9 +7,11 @@
     "apps/*"
   ],
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "dev": "concurrently \"npm run dev -w @drp/api\" \"npm run dev -w @drp/web\""
   },
   "devDependencies": {
+    "concurrently": "^10.0.5",
     "typescript": "^5.0.0",
     "vitest": "^1.0.0"
   }
