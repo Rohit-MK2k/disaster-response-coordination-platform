@@ -2,10 +2,9 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "outDir": "dist"
+    "outDir": "dist",
+    "rootDir": "src"
   },
   "include": ["src/**/*"],
-  "references": [
-    { "path": "../../packages/shared-types" }
-  ]
+  "references": [{ "path": "../../packages/shared-types" }]
 }
