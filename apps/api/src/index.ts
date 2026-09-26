@@ -5,17 +5,23 @@ import { Server } from 'socket.io';
 
 const app = express();
 app.use(cors());
+import authRoutes from './routes/auth';
+import { resolveUserMiddleware, AuthenticatedRequest } from './middleware/auth';
+
 app.use(express.json());
+
+// Routes
+app.use('/auth', authRoutes);
+
+// Protected health check route
+app.get('/health', resolveUserMiddleware, (req: express.Request, res: express.Response) => {
+  const authReq = req as AuthenticatedRequest;
+  res.json({ status: 'ok', user: authReq.user });
+});
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
-  cors: {
-    origin: '*',
-  },
-});
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+  cors: { origin: '*' }
 });
 
 io.on('connection', (socket) => {
