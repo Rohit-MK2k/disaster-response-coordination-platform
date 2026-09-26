@@ -5,6 +5,7 @@
   "dependencies": {
     "@drp/core": "*",
     "@drp/shared-types": "*",
+    "@google/genai": "^2.24.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "socket.io": "^4.8.4"
