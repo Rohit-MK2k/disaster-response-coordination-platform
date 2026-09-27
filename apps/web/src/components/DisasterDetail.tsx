@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Disaster } from '@drp/shared-types';
 import { apiClient } from '../api';
 
+import { NearbyResources } from './NearbyResources';
+
 export const DisasterDetail = ({ id, userRole, onBack }: { id: string; userRole: string; onBack: () => void }) => {
   const [disaster, setDisaster] = useState<Disaster | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,6 +50,8 @@ export const DisasterDetail = ({ id, userRole, onBack }: { id: string; userRole:
       
       {error && <div style={{ color: 'red', margin: '10px 0' }}>{error}</div>}
       
+      <NearbyResources disasterId={id} />
+
       {userRole === 'admin' && (
         <div style={{ marginTop: '20px' }}>
           <button onClick={handleDelete} style={{ background: 'red', color: 'white' }}>Delete Disaster</button>
