@@ -3,6 +3,9 @@ import { io } from 'socket.io-client';
 import { apiClient } from './api';
 import { AuthenticatedUser } from '@drp/shared-types';
 
+import { DisasterBoard } from './components/DisasterBoard';
+import { DisasterDetail } from './components/DisasterDetail';
+
 const socket = io('http://localhost:3000');
 
 export const App = () => {
@@ -12,6 +15,8 @@ export const App = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+
+  const [activeDisasterId, setActiveDisasterId] = useState<string | null>(null);
 
   useEffect(() => {
     socket.on('connect', () => setConnected(true));
@@ -43,7 +48,7 @@ export const App = () => {
       const res = await apiClient.post('/auth/login', { email, password });
       const { token, role, name, id } = res.data;
       localStorage.setItem('authToken', token);
-      setUser({ id, role }); // In a real app we'd have the full auth user
+      setUser({ id, role });
       setError('');
     } catch (err) {
       setError('Invalid credentials');
@@ -53,6 +58,7 @@ export const App = () => {
   const handleLogout = () => {
     localStorage.removeItem('authToken');
     setUser(null);
+    setActiveDisasterId(null);
   };
 
   return (
@@ -83,12 +89,14 @@ export const App = () => {
           </div>
         ) : (
           <div>
-            <h3>Welcome!</h3>
-            <p>You are logged in as a <strong>{user.role}</strong>.</p>
-            {user.role === 'admin' ? (
-              <p>You have full access to create, edit, and delete.</p>
+            {activeDisasterId ? (
+              <DisasterDetail 
+                id={activeDisasterId} 
+                userRole={user.role} 
+                onBack={() => setActiveDisasterId(null)} 
+              />
             ) : (
-              <p>You can create and edit, but you cannot delete.</p>
+              <DisasterBoard onSelect={setActiveDisasterId} />
             )}
           </div>
         )}
