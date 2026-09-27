@@ -4,3 +4,4 @@ export interface UseCase<TInput, TOutput> {
 
 export * from './errors';
 export * from './disasters';
+export * from './resources';

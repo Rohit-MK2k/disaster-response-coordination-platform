@@ -28,5 +28,11 @@ export interface CreateDisasterInput {
 
 export type UpdateDisasterInput = Partial<Omit<Disaster, 'id' | 'created_by' | 'created_at' | 'updated_at'>>;
 
-export interface Resource { id: string; }
+export interface Resource {
+  id: string;
+  name: string;
+  type: string;
+  location_lat: number;
+  location_lng: number;
+}
 export interface Report { id: string; }
