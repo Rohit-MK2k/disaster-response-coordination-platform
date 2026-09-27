@@ -6,12 +6,14 @@ import {
   DeleteDisasterUseCase,
   GetDisasterUseCase,
   ListDisastersUseCase,
+  GetNearbyResourcesUseCase,
   UnauthorizedError, 
   NotFoundError,
   ValidationError,
   ExtractionError
 } from '@drp/core';
 import { JsonDisasterRepository } from '../adapters/JsonDisasterRepository';
+import { JsonResourceRepository } from '../adapters/JsonResourceRepository';
 import { GoogleLlmExtractionAdapter } from '../adapters/GoogleLlmExtractionAdapter';
 import { MockGeocodingAdapter } from '../adapters/MockGeocodingAdapter';
 import { InMemoryCacheAdapter } from '../adapters/InMemoryCacheAdapter';
@@ -19,6 +21,7 @@ import { CreateDisasterInput, UpdateDisasterInput } from '@drp/shared-types';
 
 const router = Router();
 const repo = new JsonDisasterRepository();
+const resourceRepo = new JsonResourceRepository();
 const extractor = new GoogleLlmExtractionAdapter();
 const geocoder = new MockGeocodingAdapter();
 const cache = new InMemoryCacheAdapter();
@@ -28,6 +31,7 @@ const updateUseCase = new UpdateDisasterUseCase(repo, geocoder);
 const deleteUseCase = new DeleteDisasterUseCase(repo);
 const getUseCase = new GetDisasterUseCase(repo);
 const listUseCase = new ListDisastersUseCase(repo);
+const getNearbyResourcesUseCase = new GetNearbyResourcesUseCase(repo, resourceRepo);
 
 router.use(resolveUserMiddleware); // Protect all disaster routes
 
@@ -44,6 +48,28 @@ router.get('/:id', async (req, res) => {
   try {
     const disaster = await getUseCase.execute(req.params.id);
     res.json(disaster);
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      res.status(404).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+});
+
+router.get('/:id/resources', async (req, res) => {
+  try {
+    const radius = req.query.radius ? parseFloat(req.query.radius as string) : 50;
+    const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
+    const lng = req.query.lng ? parseFloat(req.query.lng as string) : undefined;
+
+    const resources = await getNearbyResourcesUseCase.execute({ 
+      disasterId: req.params.id, 
+      lat,
+      lng,
+      radiusKm: radius 
+    });
+    res.json(resources);
   } catch (error) {
     if (error instanceof NotFoundError) {
       res.status(404).json({ error: error.message });

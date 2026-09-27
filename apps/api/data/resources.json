@@ -1,0 +1,30 @@
+[
+  {
+    "id": "r1",
+    "name": "Manhattan General Hospital",
+    "type": "hospital",
+    "location_lat": 40.713,
+    "location_lng": -74.005
+  },
+  {
+    "id": "r2",
+    "name": "NYC Emergency Shelter",
+    "type": "shelter",
+    "location_lat": 40.720,
+    "location_lng": -73.990
+  },
+  {
+    "id": "r3",
+    "name": "LA Food Bank",
+    "type": "food",
+    "location_lat": 34.060,
+    "location_lng": -118.250
+  },
+  {
+    "id": "r4",
+    "name": "SF Water Point",
+    "type": "water",
+    "location_lat": 37.780,
+    "location_lng": -122.420
+  }
+]

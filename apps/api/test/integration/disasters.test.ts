@@ -109,6 +109,14 @@ describe('Disasters API (Integration)', () => {
     expect(res.body.error).toBe('Disaster not found.');
   });
 
+  it('GET /disasters/:id/resources - Should return nearby resources', async () => {
+    const res = await request(app)
+      .get(`/disasters/${createdDisasterId}/resources?radius=5000`)
+      .set('Authorization', `Bearer ${contributorToken}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
   it('PATCH /disasters/:id - Should update a disaster', async () => {
     const res = await request(app)
       .patch(`/disasters/${createdDisasterId}`)
