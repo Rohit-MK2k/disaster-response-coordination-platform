@@ -89,6 +89,26 @@ describe('Disasters API (Integration)', () => {
     expect(JSON.stringify(res.body)).not.toContain('API key not valid');
   });
 
+  it('GET /disasters - Should list all disasters', async () => {
+    const res = await request(app).get('/disasters').set('Authorization', `Bearer ${contributorToken}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBeGreaterThan(0);
+  });
+
+  it('GET /disasters/:id - Should return a specific disaster', async () => {
+    const res = await request(app).get(`/disasters/${createdDisasterId}`).set('Authorization', `Bearer ${contributorToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(createdDisasterId);
+    expect(res.body.title).toBe('Mock Fire');
+  });
+
+  it('GET /disasters/:id - Should return 404 for invalid ID', async () => {
+    const res = await request(app).get('/disasters/invalid-id').set('Authorization', `Bearer ${contributorToken}`);
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Disaster not found.');
+  });
+
   it('PATCH /disasters/:id - Should update a disaster', async () => {
     const res = await request(app)
       .patch(`/disasters/${createdDisasterId}`)
