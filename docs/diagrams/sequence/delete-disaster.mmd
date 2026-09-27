@@ -3,7 +3,6 @@ sequenceDiagram
     participant API as HTTP Controller
     participant UC as DeleteDisasterUseCase (core)
     participant REPO as DisasterRepositoryPort -> InMemoryRepo
-    participant EVT as EventPublisherPort -> SocketAdapter
 
     U->>API: DELETE /disasters/:id
     API->>API: authenticate() -> AuthenticatedUser
@@ -20,8 +19,6 @@ sequenceDiagram
         else disaster found
             UC->>REPO: delete(id)
             REPO-->>UC: confirmed
-            UC->>EVT: publish("disaster_updated", { id, deleted: true })
-            EVT-->>U: real-time push to connected clients
             UC-->>API: success
             API-->>U: 204 No Content
         end

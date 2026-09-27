@@ -14,19 +14,39 @@ export const DisasterDetail = ({ id, userRole, onBack }: { id: string; userRole:
   const [editData, setEditData] = useState<{ description: string; status: string }>({ description: '', status: '' });
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchDisaster = async () => {
       try {
         const res = await apiClient.get(`/disasters/${id}`);
-        setDisaster(res.data);
-        setEditData({ description: res.data.description, status: res.data.status });
-      } catch (e) {
-        setError('Failed to load disaster details.');
+        if (isMounted) {
+          setDisaster(res.data);
+          // Only update edit form data if we are NOT currently editing
+          setEditData(prev => isEditing ? prev : { description: res.data.description, status: res.data.status });
+        }
+      } catch (e: any) {
+        if (e.response?.status === 404) {
+          // If the disaster was deleted by someone else, kick the user back to the board
+          onBack();
+        } else if (isMounted) {
+          setError('Failed to load disaster details.');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
+    
     fetchDisaster();
-  }, [id]);
+
+    const intervalId = setInterval(() => {
+      fetchDisaster();
+    }, 3000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [id, onBack, isEditing]);
 
   const handleDelete = async () => {
     try {

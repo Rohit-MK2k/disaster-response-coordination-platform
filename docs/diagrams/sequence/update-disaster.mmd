@@ -4,7 +4,6 @@ sequenceDiagram
     participant UC as UpdateDisasterUseCase (core)
     participant REPO as DisasterRepositoryPort -> InMemoryRepo
     participant GEO as GeocodingPort -> MockGeocodingAdapter
-    participant EVT as EventPublisherPort -> SocketAdapter
 
     U->>API: PATCH /disasters/:id { title?, description?, tags?, status? }
     API->>API: authenticate() -> AuthenticatedUser
@@ -31,8 +30,6 @@ sequenceDiagram
         end
         UC->>REPO: save(updatedDisaster)
         REPO-->>UC: saved Disaster
-        UC->>EVT: publish("disaster_updated", updatedDisaster)
-        EVT-->>U: real-time push to connected clients
         UC-->>API: Disaster
         API-->>U: 200 OK { disaster }
     end

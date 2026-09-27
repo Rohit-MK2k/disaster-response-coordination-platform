@@ -8,7 +8,7 @@
 | Runtime | Node.js | Standard fit for TS backend, fast to scaffold |
 | Monorepo | npm/pnpm workspaces | Enforces `core` ↔ `apps` boundary at the package level, not just convention |
 | HTTP framework | Express or Fastify (infra layer only) | Framework choice is invisible to `core` by design |
-| Real-time | Socket.IO or native WebSocket/SSE | Emits `disaster_updated` on write operations |
+| Real-time | Short Polling (React setInterval) | Minimal backend complexity, relies on stateless HTTP GET requests |
 | Test runner | Vitest | Native ESM/TS, fast, low config overhead across workspaces |
 | Persistence (this phase) | None — in-memory adapters | Explicit constraint: prove the logic and boundaries before adding infra |
 | Caching (this phase) | In-memory cache adapter (pub-sub/background populated) | Same reasoning — swappable for Redis later without touching `core` |

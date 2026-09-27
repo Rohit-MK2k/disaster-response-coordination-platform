@@ -21,6 +21,12 @@ export const DisasterBoard = ({ onSelect }: { onSelect: (id: string) => void }) 
 
   useEffect(() => {
     fetchDisasters();
+
+    const intervalId = setInterval(() => {
+      fetchDisasters();
+    }, 3000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   if (loading) return <div>Loading disasters...</div>;
