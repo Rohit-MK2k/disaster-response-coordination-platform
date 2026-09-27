@@ -7,16 +7,24 @@ import {
   GetDisasterUseCase,
   ListDisastersUseCase,
   UnauthorizedError, 
-  NotFoundError 
+  NotFoundError,
+  ValidationError,
+  ExtractionError
 } from '@drp/core';
 import { JsonDisasterRepository } from '../adapters/JsonDisasterRepository';
+import { GoogleLlmExtractionAdapter } from '../adapters/GoogleLlmExtractionAdapter';
+import { MockGeocodingAdapter } from '../adapters/MockGeocodingAdapter';
+import { InMemoryCacheAdapter } from '../adapters/InMemoryCacheAdapter';
 import { CreateDisasterInput, UpdateDisasterInput } from '@drp/shared-types';
 
 const router = Router();
 const repo = new JsonDisasterRepository();
+const extractor = new GoogleLlmExtractionAdapter();
+const geocoder = new MockGeocodingAdapter();
+const cache = new InMemoryCacheAdapter();
 
-const createUseCase = new CreateDisasterUseCase(repo);
-const updateUseCase = new UpdateDisasterUseCase(repo);
+const createUseCase = new CreateDisasterUseCase(repo, extractor, geocoder, cache);
+const updateUseCase = new UpdateDisasterUseCase(repo, geocoder);
 const deleteUseCase = new DeleteDisasterUseCase(repo);
 const getUseCase = new GetDisasterUseCase(repo);
 const listUseCase = new ListDisastersUseCase(repo);
@@ -51,7 +59,13 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
     const disaster = await createUseCase.execute({ input, user: req.user! });
     res.status(201).json(disaster);
   } catch (error: any) {
-    res.status(400).json({ error: error.message || 'Bad Request' });
+    if (error instanceof ValidationError) {
+      res.status(400).json({ error: error.message });
+    } else if (error instanceof ExtractionError) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: error.message || 'Internal Server Error' });
+    }
   }
 });
 
