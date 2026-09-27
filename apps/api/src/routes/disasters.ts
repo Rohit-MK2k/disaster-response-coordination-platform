@@ -7,6 +7,7 @@ import {
   GetDisasterUseCase,
   ListDisastersUseCase,
   GetNearbyResourcesUseCase,
+  GetDisasterReportsUseCase,
   UnauthorizedError, 
   NotFoundError,
   ValidationError,
@@ -24,14 +25,15 @@ const repo = new JsonDisasterRepository();
 const resourceRepo = new JsonResourceRepository();
 const extractor = new GoogleLlmExtractionAdapter();
 const geocoder = new MockGeocodingAdapter();
-const cache = new InMemoryCacheAdapter();
+export const sharedCache = new InMemoryCacheAdapter();
 
-const createUseCase = new CreateDisasterUseCase(repo, extractor, geocoder, cache);
+const createUseCase = new CreateDisasterUseCase(repo, extractor, geocoder, sharedCache);
 const updateUseCase = new UpdateDisasterUseCase(repo, geocoder);
 const deleteUseCase = new DeleteDisasterUseCase(repo);
 const getUseCase = new GetDisasterUseCase(repo);
 const listUseCase = new ListDisastersUseCase(repo);
 const getNearbyResourcesUseCase = new GetNearbyResourcesUseCase(repo, resourceRepo);
+const getDisasterReportsUseCase = new GetDisasterReportsUseCase(repo, sharedCache);
 
 router.use(resolveUserMiddleware); // Protect all disaster routes
 
@@ -41,6 +43,22 @@ router.get('/', async (req, res) => {
     res.json(disasters);
   } catch (error) {
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.get('/:id/reports', async (req, res) => {
+  try {
+    const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+    
+    const result = await getDisasterReportsUseCase.execute({ disasterId: req.params.id, page, limit });
+    res.json(result);
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      res.status(404).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
   }
 });
 

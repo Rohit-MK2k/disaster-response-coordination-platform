@@ -129,6 +129,26 @@ describe('Disasters API (Integration)', () => {
     expect(res.body.location_name).toBe('Los Angeles, CA'); // geocoder mock logic
   });
 
+  it('GET /disasters/:id/reports - Should return paginated reports', async () => {
+    const { sharedCache } = await import('../../src/routes/disasters');
+    await sharedCache.set('global_reports_feed', [
+      { id: '1', content: 'c1', user: 'u1', created_at: 'now', _matchData: { location: 'Los Angeles, CA', tags: ['fire'] } },
+      { id: '2', content: 'c2', user: 'u2', created_at: 'now', _matchData: { location: 'Nowhere', tags: ['fire'] } },
+      { id: '3', content: 'c3', user: 'u3', created_at: 'now', _matchData: { location: 'Los Angeles', tags: ['fire'] } },
+      { id: '4', content: 'c4', user: 'u4', created_at: 'now', _matchData: { location: 'los angeles', tags: ['fire'] } },
+    ], 60);
+
+    const res = await request(app)
+      .get(`/disasters/${createdDisasterId}/reports?page=1&limit=2`)
+      .set('Authorization', `Bearer ${contributorToken}`);
+    
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(3); // 3 out of 4 match Los Angeles
+    expect(res.body.reports).toHaveLength(2); // paginated to 2
+    expect(res.body.reports[0].id).toBe('1');
+    expect(res.body.reports[1].id).toBe('3');
+  });
+
   it('DELETE /disasters/:id - Should return 403 Forbidden for a contributor', async () => {
     const res = await request(app)
       .delete(`/disasters/${createdDisasterId}`)

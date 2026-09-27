@@ -35,4 +35,13 @@ export interface Resource {
   location_lat: number;
   location_lng: number;
 }
-export interface Report { id: string; }
+export interface Report {
+  id: string;
+  content: string;
+  user: string;
+  created_at: string;
+  _matchData: {
+    location: string;
+    tags: string[];
+  };
+}

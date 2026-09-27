@@ -9,14 +9,23 @@ import { Server } from 'socket.io';
 export const app = express();
 app.use(cors());
 import authRoutes from './routes/auth';
-import disasterRoutes from './routes/disasters';
+import disasterRoutes, { sharedCache } from './routes/disasters';
 import { resolveUserMiddleware, AuthenticatedRequest } from './middleware/auth';
+import { BackgroundReportWorker } from '@drp/core';
+import { MockSocialFeedAdapter } from './adapters/MockSocialFeedAdapter';
 
 app.use(express.json());
 
 // Routes
 app.use('/auth', authRoutes);
 app.use('/disasters', disasterRoutes);
+
+// Start Background Worker
+let worker: BackgroundReportWorker;
+if (process.env.NODE_ENV !== 'test') {
+  worker = new BackgroundReportWorker(new MockSocialFeedAdapter(), sharedCache);
+  worker.start(60000); // Poll every 60 seconds
+}
 
 // Protected health check route
 app.get('/health', resolveUserMiddleware, (req: express.Request, res: express.Response) => {

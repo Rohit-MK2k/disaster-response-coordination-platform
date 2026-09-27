@@ -11,7 +11,7 @@
 | Real-time | Socket.IO or native WebSocket/SSE | Emits `disaster_updated` on write operations |
 | Test runner | Vitest | Native ESM/TS, fast, low config overhead across workspaces |
 | Persistence (this phase) | None — in-memory adapters | Explicit constraint: prove the logic and boundaries before adding infra |
-| Caching (this phase) | In-memory cache-aside adapter | Same reasoning — swappable for Redis later without touching `core` |
+| Caching (this phase) | In-memory cache adapter (pub-sub/background populated) | Same reasoning — swappable for Redis later without touching `core` |
 
 The stack is deliberately infra-light in this phase. Every external dependency (DB, cache, geocoding, social feed) is represented as a **port** in `core` and a **mock/in-memory adapter** in `apps/api`, so real infra can be swapped in later without touching business logic.
 

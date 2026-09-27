@@ -1,15 +1,31 @@
 sequenceDiagram
     actor U as User (Admin/Contributor)
+    participant WORKER as Background Worker (Node setInterval)
+    participant SRC as ReportsSourcePort -> MockReportsAdapter
+    participant CACHE as CachePort -> InMemoryCacheAdapter
+    
     participant API as HTTP Controller
     participant UC as GetDisasterReportsUseCase (core)
     participant DREPO as DisasterRepositoryPort -> InMemoryRepo
-    participant CACHE as CachePort -> InMemoryCacheAdapter
-    participant SRC as ReportsSourcePort -> MockReportsAdapter
     participant MATCH as ReportMatcher (pure function)
 
-    U->>API: GET /disasters/:id/reports
+    Note over WORKER, CACHE: Background Process (Runs every 60s)
+    loop Every 60 Seconds
+        WORKER->>SRC: fetchRawReports()
+        alt external service fails
+            SRC-->>WORKER: throws Error
+            WORKER->>WORKER: log error, swallow (do not crash)
+        else external service succeeds
+            SRC-->>WORKER: raw external payload
+            WORKER->>WORKER: normalize(rawPayload) -> Report[]
+            WORKER->>CACHE: set(reportsCacheKey, normalizedReports, ttl)
+        end
+    end
+
+    Note over U, MATCH: User HTTP Request (Non-blocking)
+    U->>API: GET /disasters/:id/reports?page=1&limit=10
     API->>API: authenticate() -> AuthenticatedUser
-    API->>UC: execute(disasterId)
+    API->>UC: execute(disasterId, page, limit)
     UC->>DREPO: findById(disasterId)
     alt disaster not found
         DREPO-->>UC: null
@@ -18,23 +34,15 @@ sequenceDiagram
     else disaster found
         DREPO-->>UC: Disaster
         UC->>CACHE: get(reportsCacheKey)
-        alt cache hit
+        alt cache miss or empty
+            CACHE-->>UC: null
+            UC->>UC: reports = []
+        else cache hit
             CACHE-->>UC: cached normalized Report[]
-        else cache miss
-            UC->>SRC: fetchRawReports()
-            alt external service fails/times out
-                SRC-->>UC: throws ExternalServiceError
-                UC->>UC: degrade gracefully
-                UC-->>API: empty Report[] (or last-known-good if cached previously)
-                API-->>U: 200 OK { reports: [] } (with warning flag)
-            else external service responds
-                SRC-->>UC: raw external payload
-                UC->>UC: normalize(rawPayload) -> Report[]
-                UC->>CACHE: set(reportsCacheKey, normalizedReports, ttl)
-            end
         end
         UC->>MATCH: filter reports where locationMatch AND tagMatch(disaster)
         MATCH-->>UC: matched Report[]
-        UC-->>API: matched Report[]
-        API-->>U: 200 OK { reports }
+        UC->>UC: slice(pagination)
+        UC-->>API: { reports, total }
+        API-->>U: 200 OK { reports, total }
     end
