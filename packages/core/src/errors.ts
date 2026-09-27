@@ -11,3 +11,17 @@ export class NotFoundError extends Error {
     this.name = 'NotFoundError';
   }
 }
+
+export class ValidationError extends Error {
+  constructor(message: string = 'Validation Error') {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
+export class ExtractionError extends Error {
+  constructor(message: string = 'Extraction Error') {
+    super(message);
+    this.name = 'ExtractionError';
+  }
+}

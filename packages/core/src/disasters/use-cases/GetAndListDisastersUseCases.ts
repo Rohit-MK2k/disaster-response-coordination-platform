@@ -19,6 +19,7 @@ export class ListDisastersUseCase implements UseCase<void, Disaster[]> {
   constructor(private repo: DisasterRepositoryPort) {}
 
   async execute(): Promise<Disaster[]> {
-    return this.repo.findAll();
+    const disasters = await this.repo.findAll();
+    return disasters.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
 }

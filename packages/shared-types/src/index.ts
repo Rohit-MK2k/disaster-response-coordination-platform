@@ -22,8 +22,11 @@ export interface Disaster {
   updated_at: string;
 }
 
-export type CreateDisasterInput = Pick<Disaster, 'title' | 'description' | 'location_name' | 'location_lat' | 'location_lng' | 'tags' | 'status'>;
-export type UpdateDisasterInput = Partial<CreateDisasterInput>;
+export interface CreateDisasterInput {
+  text: string;
+}
+
+export type UpdateDisasterInput = Partial<Omit<Disaster, 'id' | 'created_by' | 'created_at' | 'updated_at'>>;
 
 export interface Resource { id: string; }
 export interface Report { id: string; }
