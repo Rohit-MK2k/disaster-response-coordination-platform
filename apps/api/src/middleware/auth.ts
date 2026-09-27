@@ -2,7 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { Role } from '@drp/shared-types';
 import jwt from 'jsonwebtoken';
 
-const SECRET = 'dev-secret';
+const SECRET = process.env.JWT_SECRET;
+if (!SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable is required.');
+}
 
 export interface AuthenticatedRequest extends Request {
   user?: {

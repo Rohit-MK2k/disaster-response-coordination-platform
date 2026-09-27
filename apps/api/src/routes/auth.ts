@@ -6,7 +6,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const router = Router();
-const SECRET = 'dev-secret';
+const SECRET = process.env.JWT_SECRET;
+if (!SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable is required.');
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

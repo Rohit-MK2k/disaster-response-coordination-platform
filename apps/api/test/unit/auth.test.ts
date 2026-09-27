@@ -1,14 +1,19 @@
-import { describe, it, expect, vi } from 'vitest';
-import { resolveUserMiddleware, AuthenticatedRequest } from '../../src/middleware/auth';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const SECRET = 'dev-secret';
-
 describe('API: resolveUserMiddleware', () => {
+  let resolveUserMiddleware: any;
+
+  beforeAll(async () => {
+    process.env.JWT_SECRET = 'test-secret';
+    const auth = await import('../../src/middleware/auth');
+    resolveUserMiddleware = auth.resolveUserMiddleware;
+  });
+
   it('Should successfully parse a valid token and attach AuthenticatedUser', () => {
-    const token = jwt.sign({ id: '1', role: 'admin' }, SECRET);
-    const req = { headers: { authorization: `Bearer ${token}` } } as AuthenticatedRequest;
+    const token = jwt.sign({ id: '1', role: 'admin' }, 'test-secret');
+    const req = { headers: { authorization: `Bearer ${token}` } } as any;
     const res = {} as Response;
     const next: NextFunction = vi.fn();
 
